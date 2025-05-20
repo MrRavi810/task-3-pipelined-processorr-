@@ -1,0 +1,44 @@
+module pipeline (
+  input clk,
+  input rst
+);
+
+  reg [15:0] instr_mem [0:7];
+  reg [7:0] regfile [0:15];
+  reg [15:0] IF_ID, ID_EX, EX_WB;
+  reg [7:0] EX_result;
+  reg [3:0] EX_dest;
+  integer pc = 0;
+  initial begin
+    instr_mem[0] = 16'b0001000100100011; 
+    instr_mem[1] = 16'b0010001000110100; 
+    instr_mem[2] = 16'b0011001100000100; 
+    regfile[2] = 8'd10;
+    regfile[3] = 8'd5;
+    regfile[4] = 8'd2;
+  end
+
+  always @(posedge clk) begin
+    if (rst) begin
+      pc <= 0;
+      IF_ID <= 0;
+      ID_EX <= 0;
+      EX_WB <= 0;
+    end else begin
+      if (EX_WB[15:12] != 4'b0000) begin
+        regfile[EX_dest] <= EX_result;
+      end
+      case (ID_EX[15:12])
+        4'b0001: EX_result <= regfile[ID_EX[7:4]] + regfile[ID_EX[3:0]]; 
+        4'b0010: EX_result <= regfile[ID_EX[7:4]] - regfile[ID_EX[3:0]]; 
+        4'b0011: EX_result <= regfile[ID_EX[3:0]];                        
+        default: EX_result <= 0;
+      endcase
+      EX_dest <= ID_EX[11:8];
+      EX_WB <= ID_EX;
+      ID_EX <= IF_ID
+      IF_ID <= instr_mem[pc];
+      pc <= pc + 1;
+    end
+  end
+endmodule
